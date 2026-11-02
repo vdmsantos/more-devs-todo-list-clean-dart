@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo_gabarito/modules/todos/domain/usecases/get_todos.dart';
+import 'package:todo_gabarito/modules/todos/domain/usecases/get_todos_use_case.dart';
 
 import '../../../../helpers/fake_todo_repository.dart';
 

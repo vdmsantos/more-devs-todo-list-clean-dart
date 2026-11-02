@@ -73,13 +73,14 @@ class _TodosPageState extends State<TodosPage> {
       );
     }
 
-    final completed = controller.todos.where((todo) => todo.done).length;
-    final pending = controller.todos.length - completed;
+    final completed = controller.listTodos.where((todo) => todo.done).length;
+    final pending = controller.listTodos.length - completed;
     final visibleTodos = switch (filter) {
-      _TodoFilter.all => controller.todos,
+      _TodoFilter.all => controller.listTodos,
       _TodoFilter.pending =>
-        controller.todos.where((todo) => !todo.done).toList(),
-      _TodoFilter.done => controller.todos.where((todo) => todo.done).toList(),
+        controller.listTodos.where((todo) => !todo.done).toList(),
+      _TodoFilter.done =>
+        controller.listTodos.where((todo) => todo.done).toList(),
     };
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
@@ -119,11 +120,12 @@ class _TodosPageState extends State<TodosPage> {
           ],
         ),
         const SizedBox(height: 26),
-        _SummaryHeader(total: controller.todos.length, completed: completed),
+        _SummaryHeader(
+            total: controller.listTodos.length, completed: completed),
         const SizedBox(height: 22),
         _FilterTabs(
           filter: filter,
-          total: controller.todos.length,
+          total: controller.listTodos.length,
           pending: pending,
           completed: completed,
           onChanged: (value) => setState(() => filter = value),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:todo_gabarito/modules/todos/presenter/todos_controller.dart';
 
 import '../domain/entities/todo.dart';
 
@@ -121,27 +123,31 @@ class _TodoUpdatePageState extends State<TodoUpdatePage> {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () {
-                        // TODO: implementar o update nas camadas e retornar o resultado.
-                      },
-                      icon: const Icon(Icons.check_rounded),
-                      label: const Text('Salvar alterações'),
+            Consumer<TodosController>(builder: (context, controller, child) {
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+                child: Column(
+                  children: [
+                    SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: controller.loading
+                              ? null
+                              : () => controller.update(
+                                    widget.todo.copyWith(done: done),
+                                  ),
+                          child: controller.loading
+                              ? const CircularProgressIndicator()
+                              : const Text('Salvar alterações'),
+                        )),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Cancelar'),
                     ),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancelar'),
-                  ),
-                ],
-              ),
-            ),
+                  ],
+                ),
+              );
+            }),
           ],
         ),
       ),
