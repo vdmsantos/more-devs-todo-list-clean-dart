@@ -8,7 +8,7 @@ import '../domain/usecases/get_todos.dart';
 class TodosController extends ChangeNotifier {
   TodosController({required this.getTodos, required this.updateTodoUsecase});
 
-  final GetTodos getTodos;
+  final GetTodosUseCase getTodos;
   final UpdateTodoUsecase updateTodoUsecase; //criar novo use case
   //criar novo use case
 
