@@ -1,6 +1,22 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:todo_gabarito/modules/auth/domain/usecases/get_token_use_case.dart';
+import 'package:todo_gabarito/modules/auth/domain/usecases/login_use_case.dart';
+import 'package:todo_gabarito/modules/auth/domain/usecases/logout_use_case.dart';
+import 'package:todo_gabarito/modules/auth/domain/usecases/set_token_use_case.dart';
+import 'package:todo_gabarito/modules/auth/external/datasources/auth_api_datasource.dart';
+import 'package:todo_gabarito/modules/auth/infra/datasources/auth_datasource.dart';
+import 'package:todo_gabarito/modules/auth/infra/repositories/auth_repository_impl.dart';
+import 'package:todo_gabarito/modules/auth/presenter/login_controller.dart';
+import 'package:todo_gabarito/modules/auth/presenter/login_page.dart';
+import 'package:todo_gabarito/modules/habits/domain/usecases/check_in_habit_use_case.dart';
+import 'package:todo_gabarito/modules/habits/domain/usecases/get_habit_use_case.dart';
+import 'package:todo_gabarito/modules/habits/external/datasources/habit_api_datasource.dart';
+import 'package:todo_gabarito/modules/habits/infra/datasources/habit_datasource.dart';
+import 'package:todo_gabarito/modules/habits/infra/repositories/habit_repository_impl.dart';
+import 'package:todo_gabarito/modules/habits/presenter/habits_controller.dart';
+import 'package:todo_gabarito/modules/habits/presenter/habits_page.dart';
 import 'package:todo_gabarito/modules/todos/domain/usecases/update_todo_use_case.dart';
 
 import 'modules/todos/domain/usecases/get_todos_use_case.dart';
@@ -12,26 +28,59 @@ import 'modules/todos/presenter/todos_page.dart';
 
 /// Único lugar que sabe quais implementações usar.
 
-void main() {
-  final TodoDatasource datasource = TodoApiDatasource(
-    Dio(BaseOptions(
-        baseUrl: 'https://todo-api-production-62d2.up.railway.app')),
-  );
-  final repository = TodoRepositoryImpl(datasource);
-  final controller = TodosController(
-    getTodosUseCase: GetTodosUseCase(repository),
-    updateTodoUseCase: UpdateTodoUseCase(repository),
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final Dio dio = Dio(
+      BaseOptions(baseUrl: 'https://todo-api-production-62d2.up.railway.app'));
+  final TodoDatasource todoDatasource = TodoApiDatasource(dio);
+  final todoRepository = TodoRepositoryImpl(todoDatasource);
+  final todoController = TodosController(
+    getTodosUseCase: GetTodosUseCase(todoRepository),
+    updateTodoUseCase: UpdateTodoUseCase(todoRepository),
   )..load();
+
+  final HabitDatasource habitDatasource = HabitApiDatasource(dio);
+  final habitRepository = HabitRepositoryImpl(habitDatasource);
+  final AuthDatasource authDatasource = AuthApiDatasource(dio);
+  final authRepository = AuthRepositoryImpl(authDatasource);
+  final loginController = LoginController(
+      LoginUseCase(authRepository),
+      GetTokenUseCase(authRepository),
+      SetTokenUseCase(authRepository),
+      LogoutUseCase(authRepository));
+
+  await loginController.getUserToken();
+  final habitController = HabitsController(
+      getHabitUsecase: GetHabitUsecase(habitRepository),
+      checkInHabitUseCase: CheckInHabitUseCase(habitRepository))
+    ..load();
 
   runApp(MultiProvider(
     providers: [
       ChangeNotifierProvider(
-        create: (context) => controller,
+        create: (context) => todoController,
+      ),
+      ChangeNotifierProvider(
+        create: (context) => habitController,
+      ),
+      ChangeNotifierProvider(
+        create: (context) => loginController,
       )
     ],
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: TodosPage(controller: controller),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF315CFF)),
+      ),
+      home: ListenableBuilder(
+        listenable: loginController,
+        builder: (context, _) => loginController.userToken != null
+            ? HomeShell(pages: [
+                TodosPage(controller: todoController),
+                HabitsPage(habitsController: habitController),
+              ])
+            : LoginPage(controller: loginController),
+      ),
     ),
   ));
 }

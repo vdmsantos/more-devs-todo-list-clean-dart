@@ -25,7 +25,7 @@ class HabitRepositoryImpl implements HabitRepository {
       final maps = await datasource.postHabit(habit);
       return HabitModel.fromMap(maps);
     } catch (_) {
-      throw const HabitFailure('Não efetuar o check-in');
+      throw const HabitFailure('Não foi possivel efetuar o check-in');
     }
   }
 }

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:todo_gabarito/modules/habits/domain/entities/habit.dart';
+import 'package:todo_gabarito/modules/habits/presenter/habits_controller.dart';
 
 /// Tela de hábitos. Por enquanto usa dados fixos ([_mockHabits]).
 ///
@@ -9,7 +12,9 @@ import 'package:flutter/material.dart';
 ///   4. tratar `loading` e `error` (veja `TodosPage`);
 ///   5. chamar o caso de uso de check-in em [_checkIn].
 class HabitsPage extends StatefulWidget {
-  const HabitsPage({super.key});
+  const HabitsPage({super.key, required this.habitsController});
+
+  final HabitsController habitsController;
 
   @override
   State<HabitsPage> createState() => _HabitsPageState();
@@ -17,32 +22,8 @@ class HabitsPage extends StatefulWidget {
 
 /// Só para a tela funcionar sem as outras camadas. Apague quando tiver a
 /// entidade `Habit` — streak e "feito hoje" são regras do domínio.
-class _HabitMock {
-  _HabitMock(this.id, this.name, this.streak, this.doneToday);
-
-  final int id;
-  final String name;
-  int streak;
-  bool doneToday;
-}
 
 class _HabitsPageState extends State<HabitsPage> {
-  final _mockHabits = [
-    _HabitMock(1, 'Beber 2L de água', 5, false),
-    _HabitMock(2, 'Ler 10 páginas', 3, true),
-    _HabitMock(3, 'Estudar Flutter', 2, false),
-    _HabitMock(4, 'Caminhar 20 minutos', 0, false),
-    _HabitMock(5, 'Meditar', 0, false),
-  ];
-
-  void _checkIn(_HabitMock habit) {
-    // TODO(aluno): chamar o controller (POST /habits/:id/checkins).
-    setState(() {
-      habit.doneToday = true;
-      habit.streak++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Theme(
@@ -60,84 +41,93 @@ class _HabitsPageState extends State<HabitsPage> {
   }
 
   Widget _buildBody(BuildContext context) {
-    final habits = _mockHabits;
-    final doneToday = habits.where((habit) => habit.doneToday).length;
-    final bestStreak = habits.fold<int>(
-      0,
-      (best, habit) => habit.streak > best ? habit.streak : best,
-    );
+    return Consumer<HabitsController>(builder: (context, controller, child) {
+      if (controller.loading) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      final habits = widget.habitsController.listHabits;
+      final doneToday =
+          habits.where((habit) => habit.hasCheckedInToday()).length;
+      final bestStreak = habits.fold<int>(
+        0,
+        (best, habit) =>
+            habit.getCheckinStreak() > best ? habit.getCheckinStreak() : best,
+      );
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _todayLabel(),
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _todayLabel(),
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Meus hábitos',
-                    style: TextStyle(
-                      fontSize: 29,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.8,
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Meus hábitos',
+                      style: TextStyle(
+                        fontSize: 29,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.8,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            IconButton.filledTonal(
-              tooltip: 'Atualizar hábitos',
-              // TODO(aluno): chamar controller.load.
-              onPressed: () {},
-              icon: const Icon(Icons.refresh_rounded),
-            ),
-          ],
-        ),
-        const SizedBox(height: 26),
-        _SummaryCard(
-          total: habits.length,
-          doneToday: doneToday,
-          bestStreak: bestStreak,
-        ),
-        const SizedBox(height: 24),
-        Text(
-          'HÁBITOS',
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.6,
+              IconButton.filledTonal(
+                tooltip: 'Atualizar hábitos',
+                // TODO(aluno): chamar controller.load.
+                onPressed: () {
+                  controller.load();
+                },
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 10),
-        if (habits.isEmpty)
-          const _EmptyState()
-        else
-          ...habits.map(
-            (habit) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _HabitCard(
-                name: habit.name,
-                streak: habit.streak,
-                doneToday: habit.doneToday,
-                onCheckIn: () => _checkIn(habit),
-              ),
+          const SizedBox(height: 26),
+          _SummaryCard(
+            total: habits.length,
+            doneToday: doneToday,
+            bestStreak: bestStreak,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'HÁBITOS',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.6,
             ),
           ),
-      ],
-    );
+          const SizedBox(height: 10),
+          if (habits.isEmpty)
+            const _EmptyState()
+          else
+            ...habits.map(
+              (habit) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _HabitCard(
+                  name: habit.name,
+                  streak: habit.getCheckinStreak(),
+                  doneToday: habit.hasCheckedInToday(),
+                  onCheckIn: () => controller.checkInHabitUseCase(habit),
+                ),
+              ),
+            ),
+        ],
+      );
+    });
   }
 }
 

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:todo_gabarito/modules/auth/presenter/login_controller.dart';
+import 'package:todo_gabarito/modules/auth/presenter/login_page.dart';
 
 import 'todos_controller.dart';
 import 'todo_update_page.dart';
@@ -117,6 +120,26 @@ class _TodosPageState extends State<TodosPage> {
               onPressed: controller.loading ? null : controller.load,
               icon: const Icon(Icons.refresh_rounded),
             ),
+            Consumer<LoginController>(
+                builder: (context, loginController, child) {
+              return IconButton.filledTonal(
+                tooltip: 'Logout',
+                color: Colors.redAccent,
+                onPressed: () async {
+                  try {
+                    await loginController.logout();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            LoginPage(controller: loginController),
+                      ),
+                    );
+                  } catch (e) {}
+                },
+                icon: const Icon(Icons.refresh_rounded),
+              );
+            }),
           ],
         ),
         const SizedBox(height: 26),
