@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:todo_gabarito/modules/auth/domain/usecases/get_token_use_case.dart';
 import 'package:todo_gabarito/modules/auth/domain/usecases/login_use_case.dart';
 import 'package:todo_gabarito/modules/auth/domain/usecases/logout_use_case.dart';
@@ -21,6 +23,8 @@ import 'package:todo_gabarito/modules/todos/domain/usecases/update_todo_use_case
 
 import 'modules/todos/domain/usecases/get_todos_use_case.dart';
 import 'modules/todos/external/datasources/todo_api_datasource.dart';
+import 'modules/todos/external/datasources/todo_connectivity_plus_datasource.dart';
+import 'modules/todos/external/datasources/todo_shared_preferences_datasource.dart';
 import 'modules/todos/infra/datasources/todo_datasource.dart';
 import 'modules/todos/infra/repositories/todo_repository_impl.dart';
 import 'modules/todos/presenter/todos_controller.dart';
@@ -33,7 +37,14 @@ void main() async {
   final Dio dio = Dio(
       BaseOptions(baseUrl: 'https://todo-api-production-62d2.up.railway.app'));
   final TodoDatasource todoDatasource = TodoApiDatasource(dio);
-  final todoRepository = TodoRepositoryImpl(todoDatasource);
+  final preferences = await SharedPreferences.getInstance();
+  final todoCache = TodoSharedPreferencesDatasource(preferences);
+  final todoConnectivity = TodoConnectivityPlusDatasource(Connectivity());
+  final todoRepository = TodoRepositoryImpl(
+    todoDatasource,
+    todoCache,
+    todoConnectivity,
+  );
   final todoController = TodosController(
     getTodosUseCase: GetTodosUseCase(todoRepository),
     updateTodoUseCase: UpdateTodoUseCase(todoRepository),
